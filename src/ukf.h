@@ -67,6 +67,15 @@ public:
   ///* Sigma point spreading parameter
   double lambda_;
 
+  ///* augmented state vector
+  VectorXd x_aug_;
+
+  ///* augmented state covariance matrix
+  MatrixXd P_aug_;
+
+  ///* augmented sigma point matrix
+  MatrixXd Xsig_aug_;
+
   float px_;
   float py_;
 
@@ -99,6 +108,10 @@ public:
    */
   void Prediction(double delta_t);
 
+  void Augmentation(Eigen::VectorXd x, Eigen::MatrixXd P, float sta_a, float std_yawdd, int n_x, bool is_initialized);
+  void CreateSigmaPoints();
+  void PredictMeanAndCovariance();
+  
   /**
    * Updates the state and the state covariance matrix using a laser measurement
    * @param meas_package The measurement at k+1

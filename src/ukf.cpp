@@ -62,11 +62,22 @@ UKF::UKF() {
   ///* Weights of sigma points
   VectorXd weights_;
 
+  ///* state vector dimension
   n_x_ = 5;
 
+  ///* augmented state vector dimension
   n_aug_ = 7;
 
   lambda_ = 3 - n_aug_;
+
+  ///* augmented state vector
+  x_aug_ = VectorXd(n_aug_);
+
+  ///* augmented state covariance matrix
+  P_aug_ = MatrixXd(n_aug_, n_aug_);
+
+  ///* augmented sigma points matrix
+  Xsig_aug_ = MatrixXd(n_aug_, 2 * n_aug_ + 1);
 
 }
 
@@ -114,6 +125,9 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
           0, 0, 0,    0,     1000;
 
     time_us_ = meas_package.timestamp_;
+    
+    Augmentation(x_, P_, std_a_, std_yawdd_, n_x_, is_initialized_);
+    
     is_initialized_ = true;
 
     /**
@@ -129,6 +143,8 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 
   dt_ = ( meas_package.timestamp_ - time_us_ ) / 1000000.0; //  in seconds
   time_us_ = meas_package.timestamp_;
+
+  Augmentation(x_, P_, std_a_, std_yawdd_, n_x_, is_initialized_);
 
   Prediction(dt_);
 
@@ -189,4 +205,43 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the radar NIS.
   */
+}
+
+void UKF::Augmentation(VectorXd x, MatrixXd P, float std_a, float std_yawdd, int n_x, bool is_initialized) {
+
+  if (!is_initialized) {
+   
+    x_aug_.head(n_x) = x;
+    x_aug_(5) = 0;
+    x_aug_(6) = 0;
+
+    P_aug_.fill(0.0);
+    P_aug_.topLeftCorner(n_x_, n_x_) = P;
+    P_aug_(5, 5) = std_a*std_a;
+    P_aug_(6, 6) = std_yawdd*std_yawdd;
+
+  }
+
+  CreateSigmaPoints();
+
+} 
+
+void UKF::CreateSigmaPoints() {
+  
+  Xsig_aug_.col(0) = x_aug_;
+  MatrixXd L;
+
+  for (int i=0; i<n_aug_; i++) {
+
+    L = P_aug_.llt().matrixL();
+
+    Xsig_aug_.col(i+1)        = x_aug_ + sqrt( lambda_ + n_aug_ ) * L.col(i);
+    Xsig_aug_.col(i+1+n_aug_) = x_aug_ - sqrt( lambda_ + n_aug_ ) * L.col(i);
+
+  }
+
+}
+
+void UKF::PredictMeanAndCovariance() {
+
 }
