@@ -67,6 +67,14 @@ public:
   ///* Sigma point spreading parameter
   double lambda_;
 
+  float px_;
+  float py_;
+
+  float rho_;
+  float phi_;
+  float rho_dot_;
+
+  double dt_;
 
   /**
    * Constructor

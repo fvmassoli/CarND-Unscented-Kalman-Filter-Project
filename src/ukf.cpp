@@ -51,6 +51,23 @@ UKF::UKF() {
 
   Hint: one or more values initialized above might be wildly off...
   */
+
+  is_initialized_ = false;
+
+  ///* predicted sigma points matrix
+  MatrixXd Xsig_pred_;
+
+  time_us_ = 0;
+
+  ///* Weights of sigma points
+  VectorXd weights_;
+
+  n_x_ = 5;
+
+  n_aug_ = 7;
+
+  lambda_ = 3 - n_aug_;
+
 }
 
 UKF::~UKF() {}
@@ -66,6 +83,68 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   Complete this function! Make sure you switch between lidar and radar
   measurements.
   */
+
+  /*****************************************************************************
+   *  Initialization
+   ****************************************************************************/
+
+  if (!is_initialized_) {
+
+    if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+
+      px_ = meas_package.raw_measurements_[0];
+      py_ = meas_package.raw_measurements_[1];
+
+      x_ << px_, py_, 0, 0, 0;
+
+    } else if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+
+      rho_ = meas_package.raw_measurements_[0];
+      phi_ = meas_package.raw_measurements_[1];
+      rho_dot_ = meas_package.raw_measurements_[2];
+
+      x_ << rho_*cos(phi_), rho_*sin(phi_), 0, 0, 0;
+
+    }
+  
+    P_ << 1, 0, 0,    0,     0,
+          0, 1, 0,    0,     0,
+          0, 0, 1000, 0,     0,
+          0, 0, 0,    1000 , 0, 
+          0, 0, 0,    0,     1000;
+
+    time_us_ = meas_package.timestamp_;
+    is_initialized_ = true;
+
+    /**
+      return from initialization
+    */
+    return;
+  }
+
+
+  /*****************************************************************************
+     Prediction
+   ****************************************************************************/
+
+  dt_ = ( meas_package.timestamp_ - time_us_ ) / 1000000.0; //  in seconds
+  time_us_ = meas_package.timestamp_;
+
+  Prediction(dt_);
+
+
+  /*****************************************************************************
+   *  Update
+   ****************************************************************************/
+
+  if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+
+  } else if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+
+  }
+
+
+
 }
 
 /**
