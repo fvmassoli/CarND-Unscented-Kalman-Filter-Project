@@ -108,8 +108,19 @@ public:
    */
   void Prediction(double delta_t);
 
+  /**
+   * Augment the state vector and state covariance matrix
+   */
   void Augmentation(Eigen::VectorXd x, Eigen::MatrixXd P, float sta_a, float std_yawdd, int n_x, bool is_initialized);
-  void CreateSigmaPoints();
+
+  /**
+   * Create the sigma points
+   */
+  void CreateSigmaPoints(Eigen::VectorXd x_aug, Eigen::MatrixXd P_aug, double lambda, int n_aug);
+  
+  /**
+   * 
+   */
   void PredictMeanAndCovariance();
   
   /**

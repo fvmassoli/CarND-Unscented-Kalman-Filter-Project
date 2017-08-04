@@ -54,9 +54,6 @@ UKF::UKF() {
 
   is_initialized_ = false;
 
-  ///* predicted sigma points matrix
-  MatrixXd Xsig_pred_;
-
   time_us_ = 0;
 
   ///* Weights of sigma points
@@ -69,6 +66,9 @@ UKF::UKF() {
   n_aug_ = 7;
 
   lambda_ = 3 - n_aug_;
+
+  ///* predicted sigma points matrix
+  MatrixXd Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);;
 
   ///* augmented state vector
   x_aug_ = VectorXd(n_aug_);
@@ -144,8 +144,19 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   dt_ = ( meas_package.timestamp_ - time_us_ ) / 1000000.0; //  in seconds
   time_us_ = meas_package.timestamp_;
 
+  /**
+    Augmentation step
+  */
   Augmentation(x_, P_, std_a_, std_yawdd_, n_x_, is_initialized_);
-
+  
+  /**
+    Create sigma points  
+  */
+  CreateSigmaPoints(x_aug_, P_aug_, lambda_, n_aug_);
+  
+  /**
+    Predict sigma points
+  */
   Prediction(dt_);
 
 
@@ -175,6 +186,55 @@ void UKF::Prediction(double delta_t) {
   Complete this function! Estimate the object's location. Modify the state
   vector, x_. Predict sigma points, the state, and the state covariance matrix.
   */
+
+  double px, px_p;
+  double py, py_p;
+  double v, v_p;
+  double yaw, yaw_p;
+  double yaw_d, yaw_d_p;
+  double nu_a;
+  double nu_yawdd;
+  double delta_t2 = delta_t * delta_t;
+
+  for (int i=0; i<2*n_aug_+1; i++) {
+
+    px       = Xsig_aug_(0, i);
+    py       = Xsig_aug_(1, i);
+    v        = Xsig_aug_(2, i);
+    yaw      = Xsig_aug_(3, i);
+    yaw_d    = Xsig_aug_(4, i);
+    nu_a     = Xsig_aug_(5, i);
+    nu_yawdd = Xsig_aug_(6, i);
+
+    /**
+      Avoid division by 0
+    */
+    if (fabs(yaw) > 0.001) {
+      px_p = px + ( v / yaw_d) * ( sin( yaw + yaw_d*delta_t ) - sin( yaw ) ) + 0.5 * delta_t2 * cos(yaw) * nu_a;
+      py_p = py + ( v / yaw_d) * ( -cos( yaw + yaw_d*delta_t ) + cos( yaw ) ) + 0.5 * delta_t2 * sin(yaw) * nu_a;
+    } else {
+      px_p = v * cos(yaw);
+      py_p = v * sin(yaw);
+    }
+
+    v_p = nu_a * delta_t;
+    
+    if (fabs(yaw) > 0.001) {
+      yaw_d_p = yaw_d * delta_t;
+    } else {
+      yaw_d_p = 0;
+    } 
+
+    yaw_d_p = nu_yawdd * delta_t;
+
+    Xsig_pred_(0, i) = px_p;
+    Xsig_pred_(1, 1) = py_p;
+    Xsig_pred_(2, i) = v_p;
+    Xsig_pred_(3, i) = yaw_p;
+    Xsig_pred_(4, i) = yaw_d_p;
+
+  }
+
 }
 
 /**
@@ -222,21 +282,19 @@ void UKF::Augmentation(VectorXd x, MatrixXd P, float std_a, float std_yawdd, int
 
   }
 
-  CreateSigmaPoints();
-
 } 
 
-void UKF::CreateSigmaPoints() {
+void UKF::CreateSigmaPoints(VectorXd x_aug, MatrixXd P_aug, double lambda, int n_aug) {
   
-  Xsig_aug_.col(0) = x_aug_;
+  Xsig_aug_.col(0) = x_aug;
   MatrixXd L;
 
   for (int i=0; i<n_aug_; i++) {
 
-    L = P_aug_.llt().matrixL();
+    L = P_aug.llt().matrixL();
 
-    Xsig_aug_.col(i+1)        = x_aug_ + sqrt( lambda_ + n_aug_ ) * L.col(i);
-    Xsig_aug_.col(i+1+n_aug_) = x_aug_ - sqrt( lambda_ + n_aug_ ) * L.col(i);
+    Xsig_aug_.col(i+1)        = x_aug + sqrt( lambda + n_aug ) * L.col(i);
+    Xsig_aug_.col(i+1+n_aug_) = x_aug - sqrt( lambda + n_aug ) * L.col(i);
 
   }
 
