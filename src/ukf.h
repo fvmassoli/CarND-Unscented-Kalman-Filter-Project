@@ -22,17 +22,11 @@ public:
   ///* if this is false, radar measurements will be ignored (except for init)
   bool use_radar_;
 
-  ///* state vector: [pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
-  VectorXd x_;
-
-  ///* state covariance matrix
-  MatrixXd P_;
-
-  ///* predicted sigma points matrix
-  MatrixXd Xsig_pred_;
-
   ///* time when the state is true, in us
-  long long time_us_;
+  long time_us_;
+
+  ///* time interval
+  double dt_;
 
   ///* Process noise standard deviation longitudinal acceleration in m/s^2
   double std_a_;
@@ -53,13 +47,16 @@ public:
   double std_radphi_;
 
   ///* Radar measurement noise standard deviation radius change in m/s
-  double std_radrd_ ;
-
-  ///* Weights of sigma points
-  VectorXd weights_;
+  double std_radrd_;
 
   ///* State dimension
   int n_x_;
+
+  ///* state vector: [pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
+  VectorXd x_;
+
+  ///* state covariance matrix
+  MatrixXd P_;
 
   ///* Augmented state dimension
   int n_aug_;
@@ -76,33 +73,33 @@ public:
   ///* augmented sigma point matrix
   MatrixXd Xsig_aug_;
 
-  ///* predicted lidar mesurement vector  
-  MatrixXd Z_mea_lidar_sig;
+  ///* predicted sigma points matrix
+  MatrixXd Xsig_pred_;
 
-  ///* predicted radar mesurement vector  
-  MatrixXd Z_mea_radar_sig;
+  ///* Weights of sigma points
+  VectorXd weights_;
+
+  ///* predicted mesurement vector  
+  MatrixXd Z_sig_pred_;
 
   ///* measurement predicted mean
-  VectorXd z_mea_p;
+  VectorXd z_pred_;
 
   ///* measurement covariance matrix
-  MatrixXd S;
+  MatrixXd S_;
 
   ///* measurement lidar noise matrix
-  MatrixXd R_lidar;
+  MatrixXd R_lidar_;
 
   ///* measurement radar noise matrix
-  MatrixXd R_radar;
+  MatrixXd R_radar_;
 
-  float px_;
-  float py_;
+  ///* cross correlation matrix
+  MatrixXd Tc_;
 
-  float rho_;
-  float phi_;
-  float rho_dot_;
-
-  double dt_;
-
+  ///* kalman gain matrix
+  MatrixXd K_;
+  
   /**
    * Constructor
    */
@@ -129,12 +126,12 @@ public:
   /**
    * Augment the state vector and state covariance matrix
    */
-  void Augmentation(Eigen::VectorXd x, Eigen::MatrixXd P, float sta_a, float std_yawdd, int n_x, bool is_initialized);
+  void Augmentation();
 
   /**
    * Create the sigma points
    */
-  void CreateSigmaPoints(Eigen::VectorXd x_aug, Eigen::MatrixXd P_aug, double lambda, int n_aug);
+  void CreateSigmaPoints();
   
   /**
    * 
