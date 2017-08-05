@@ -56,9 +56,6 @@ UKF::UKF() {
 
   time_us_ = 0;
 
-  ///* Weights of sigma points
-  VectorXd weights_;
-
   ///* state vector dimension
   n_x_ = 5;
 
@@ -67,8 +64,11 @@ UKF::UKF() {
 
   lambda_ = 3 - n_aug_;
 
+  ///* Weights of sigma points
+  weights_ = VectorXd(2 * n_aug_ + 1);
+
   ///* predicted sigma points matrix
-  MatrixXd Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);;
+  Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);;
 
   ///* augmented state vector
   x_aug_ = VectorXd(n_aug_);
@@ -159,18 +159,114 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   */
   Prediction(dt_);
 
+  /**
+    Predict mean and covariance
+  */
+  PredictMeanAndCovariance();
 
   /*****************************************************************************
    *  Update
    ****************************************************************************/
 
-  if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+  double px;
+  double py;
+  double yaw;
+  double vx;
+  double vy;
+  double rho;
+  double phi;
+  double rho_d;
 
-  } else if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+  Z_mea_lidar_sig = MatrixXd(4, 2*n_aug_+1);
+  Z_mea_radar_sig = MatrixXd(3, 2*n_aug_+1);
+
+  for(int i=0; i<2*n_aug_+1; i++) {
+
+    px  = Xsig_pred_(0, i);
+    py  = Xsig_pred_(1, i);
+    yaw = Xsig_pred_(3, i);
+    vx  = Xsig_pred_(2, i) * cos( yaw );
+    vy  = Xsig_pred_(2, i) * sin( yaw );
+
+    if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+
+      Z_mea_lidar_sig(0, i) = px;      
+      Z_mea_lidar_sig(1, i) = py;
+      Z_mea_lidar_sig(2, i) = vx;
+      Z_mea_lidar_sig(3, i) = vy;
+
+    } else if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+
+      rho = sqrt( ( px * px ) + ( py * py ) );
+      phi = atan2( py, px );
+      rho_d = ( ( px * vx ) + ( py * vy) ) / rho;
+
+      Z_mea_radar_sig(0, i) = rho;      
+      Z_mea_radar_sig(1, i) = phi;
+      Z_mea_radar_sig(2, i) = rho_d;
+
+    }
 
   }
 
 
+  VectorXd weights = VectorXd(2*n_aug+1);
+   double weight_0 = lambda/(lambda+n_aug);
+  weights(0) = weight_0;
+  for (int i=1; i<2*n_aug+1; i++) {  
+    double weight = 0.5/(n_aug+lambda);
+    weights(i) = weight;
+  }
+
+  if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+    
+    z_mea_p = VectorXd(3);
+    z_mea_p.fill(0.0);
+    S = MatriXd(3, 3);
+    S.fill(0.0);
+    R_radar = MatrixXd(3, 3);
+    R_radar << std_radr_ * std_radr_, 0,                          0,
+               0,                     std_radphi_ * std_radphi_ , 0,
+               0,                     0,                          std_radrd_ * std_radrd_;
+
+    for (int i=0; i<2*n_aug_+1; i++) {
+
+
+      z_mea_p = z_mea_p + weights(i) * Z_mea_radar_sig.col(i);
+      VectorXd z_diff = Z_mea_radar_sig.col(i) - z_pred;
+
+      while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
+      while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
+
+      S = S + weights(i) * z_diff * z_diff.transpose();
+
+    }
+
+    S = S + R_radar;
+
+
+  } else if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+
+    z_mea_p = VectorXd(2);
+    z_mea_p.fill(0.0);
+    S = MatriXd(2, 2);
+    S.fill(0.0);
+    R_lidar = MatrixXd(2, 2);
+    R_lidar << std_laspx_ * std_laspx_, 0,                       
+               0,                     std_laspy_ * std_laspy_ ;
+
+    for (int i=0; i<2*n_aug_+1; i++) {
+
+      z_mea_p = z_mea_p + weights(i) * Z_mea_radar_sig.col(i);
+      VectorXd z_diff = Z_mea_radar_sig.col(i) - z_pred;
+
+      S = S + weights(i) * z_diff * z_diff.transpose();
+
+    }
+
+    S = S + R_lidar;
+
+  }
 
 }
 
@@ -301,5 +397,28 @@ void UKF::CreateSigmaPoints(VectorXd x_aug, MatrixXd P_aug, double lambda, int n
 }
 
 void UKF::PredictMeanAndCovariance() {
+  
+  x_.fill(0.0);
+  P_.fill(0.0);
+
+  for (int i=0; i<2*n_aug_+1; i++) {
+
+    if (i == 0)
+      weights_ << lambda_ / (lambda_ + 2*n_aug_+1);
+    else
+      weights_ << 1 / ( 2 * (lambda_ + 2*n_aug_+1) );
+
+
+    x_ = x_ + weights_(i) * Xsig_pred_.col(i);
+
+    VectorXd x_d = Xsig_pred_.col(i) - x_;
+    while(x_d(3) > M_PI)
+      x_d(3) -= 2 * M_PI;
+    while(x_d(3) < -M_PI)
+      x_d(3) += 2 * M_PI;
+
+    P_ = P_ + x_d * x_d.transpose();
+
+  }
 
 }

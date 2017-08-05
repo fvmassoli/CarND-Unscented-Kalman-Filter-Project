@@ -76,6 +76,24 @@ public:
   ///* augmented sigma point matrix
   MatrixXd Xsig_aug_;
 
+  ///* predicted lidar mesurement vector  
+  MatrixXd Z_mea_lidar_sig;
+
+  ///* predicted radar mesurement vector  
+  MatrixXd Z_mea_radar_sig;
+
+  ///* measurement predicted mean
+  VectorXd z_mea_p;
+
+  ///* measurement covariance matrix
+  MatrixXd S;
+
+  ///* measurement lidar noise matrix
+  MatrixXd R_lidar;
+
+  ///* measurement radar noise matrix
+  MatrixXd R_radar;
+
   float px_;
   float py_;
 
