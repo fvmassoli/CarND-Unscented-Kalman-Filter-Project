@@ -139,6 +139,16 @@ public:
   void PredictMeanAndCovariance();
   
   /**
+   * 
+  */
+  void PredictRadarSigmaPoints();
+
+  /**
+   * 
+  */
+  void PredictLidarSigmaPoints();
+
+  /**
    * Updates the state and the state covariance matrix using a laser measurement
    * @param meas_package The measurement at k+1
    */
