@@ -99,6 +99,10 @@ public:
 
   ///* kalman gain matrix
   MatrixXd K_;
+
+  double NIS_radar_;
+
+  double NIS_lidar_;
   
   /**
    * Constructor

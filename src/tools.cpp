@@ -18,7 +18,7 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
   
   */
   VectorXd rmse(4);
-  rmse << 0, 0, 0, 0;
+  rmse.fill(0.0);
 
   /**
   
