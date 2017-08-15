@@ -1105,6 +1105,8 @@ Eigen/Dense
 /media/fabiovalerio/Data/udacity_projects/carnd/term_2/CarND-Unscented-Kalman-Filter-Project/src/ukf.cpp
 ukf.h
 /media/fabiovalerio/Data/udacity_projects/carnd/term_2/CarND-Unscented-Kalman-Filter-Project/src/ukf.h
+tools.h
+/media/fabiovalerio/Data/udacity_projects/carnd/term_2/CarND-Unscented-Kalman-Filter-Project/src/tools.h
 Eigen/Dense
 /media/fabiovalerio/Data/udacity_projects/carnd/term_2/CarND-Unscented-Kalman-Filter-Project/src/Eigen/Dense
 iostream
@@ -1121,4 +1123,6 @@ string
 -
 fstream
 -
+tools.h
+/media/fabiovalerio/Data/udacity_projects/carnd/term_2/CarND-Unscented-Kalman-Filter-Project/src/tools.h
 
